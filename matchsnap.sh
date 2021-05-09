@@ -150,7 +150,7 @@ GET_MATCHSNP() {
 	else
 	   MATCH="NO"
         fi
-        printf "+ Match: $MATCH D:$STATDSTSNAP S:$STATSRCSNAP DA:$DSTAGE "
+        printf "+ Match:$MATCH D:$STATDSTSNAP S:$STATSRCSNAP DA:$DSTAGE "
         printf "DDS:$STATDSTDS SDS:$STATSRCDS T:$TAG\n"
       fi
     fi
