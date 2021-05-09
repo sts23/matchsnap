@@ -150,10 +150,10 @@ GET_MATCHSNP() {
 	else
 	   MATCH="NO"
         fi
-        [ "$DHOST" != "" ] && STATDSTDS="$STATDSTDS@$DHOST"
-        [ "$SHOST" != "" ] && STATSRCDS="$STATSRCDS@$SHOST"
-        printf "+ Match:$MATCH D:$STATDSTSNAP S:$STATSRCSNAP DA:$DSTAGE "
-        printf "DDS:$STATDSTDS SDS:$STATSRCDS T:$TAG\n"
+        [ "$DHOST" != "" ] && STATDSTDS="$DHOST:$STATDSTDS"
+        [ "$SHOST" != "" ] && STATSRCDS="$SHOST:$STATSRCDS"
+        printf "+ Match=$MATCH D=$STATDSTSNAP S=$STATSRCSNAP DA=$DSTAGE "
+        printf "DDS=$STATDSTDS SDS=$STATSRCDS T=$TAG\n"
       fi
     fi
   done 
