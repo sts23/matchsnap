@@ -66,6 +66,20 @@ DDS:   Destination Dataset
 SDS:   Source Dataset 
 T:     Wird die Option -t verwendet wird hier der Filterbegriff angegeben.
 ```
+## cmk_snapcheck
+Wrapper-Script für checkmk local checks mit check_mk_agent.
+Muss unter /usr/lib/check_mk_agent/local abgelegt werden.
+
+Parameter zum anpssen:
+```
+## Config Variables
+MATCHSNAP="/usr/local/bin/matchsnap.sh"
+DESTDS="backup/bsp/shr"
+SOURCEDS="192.168.XXX.XXX:pool1/shr"
+WARNAGE="24"
+CRITAGE="48"
+TAG="backup"
+```
 
 ## Todo
 Alles noch Work in progress und nicht final.
