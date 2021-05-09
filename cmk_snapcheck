@@ -14,11 +14,10 @@ TAG=""
 ## Rest
 [ "$TAG" != "" ] && TAG="-t $TAG"
 CMDOUT=`$MATCHSNAP -q $TAG "$DESTDS" "$SOURCEDS"|head -1`
-MATCH=`echo "$CMDOUT" | cut -d' ' -f2 | cut -d':' -f2`
-SNPAGE=`echo "$CMDOUT" | cut -d' ' -f5 | cut -d':' -f2`
-DDATSET=`echo "$CMDOUT" | cut -d' ' -f6 | cut -d':' -f2`
-SDATSET=`echo "$CMDOUT" | cut -d' ' -f7 | cut -d':' -f2`
-WHO=`whoami`
+MATCH=`echo "$CMDOUT" | cut -d' ' -f2 | cut -d'=' -f2`
+SNPAGE=`echo "$CMDOUT" | cut -d' ' -f5 | cut -d'=' -f2`
+DDATSET=`echo "$CMDOUT" | cut -d' ' -f6 | cut -d'=' -f2`
+SDATSET=`echo "$CMDOUT" | cut -d' ' -f7 | cut -d'=' -f2`
 
 # Satus: 0=OK 1=WARN 2=CRIT 3=UNKN
 
