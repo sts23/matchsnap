@@ -1,0 +1,32 @@
+#! /bin/sh
+#
+# CheckMK Wrapper Script for matchsnap.sh
+# Put this Script in /usr/lib/check_mk_agent/local to run it as local check.
+
+## Config Variables
+MATCHSNAP="/usr/local/bin/matchsnap.sh"
+DESTDS="backup/sr/smbshr"
+SOURCEDS="192.168.178.31:pool1/smbshr"
+WARNAGE="24"
+CRITAGE="48"
+TAG="backup"
+
+## Rest
+[ "$TAG" != "" ] && TAG="-t $TAG"
+CMDOUT=`$MATCHSNAP -q $TAG "$DESTDS" "$SOURCEDS"|head -1`
+MATCH=`echo "$CMDOUT" | cut -d' ' -f2 | cut -d':' -f2`
+SNPAGE=`echo "$CMDOUT" | cut -d' ' -f5 | cut -d':' -f2`
+DDATSET=`echo "$CMDOUT" | cut -d' ' -f6 | cut -d':' -f2`
+SDATSET=`echo "$CMDOUT" | cut -d' ' -f7 | cut -d':' -f2`
+WHO=`whoami`
+
+# Satus: 0=OK 1=WARN 2=CRIT 3=UNKN
+
+STAT="0"
+AGESTAT="OK"
+[ $SNPAGE -gt $WARNAGE ] && STAT="1" && AGESTAT="WARN"
+[ $SNPAGE -gt $CRITAGE ] && STAT="2" && AGESTAT="CRIT"
+[ "$MATCH" != "OK" ]     && STAT="2"
+
+echo "$STAT \"Match last snapshot from $DDATSET with $SDATSET\" - Match:$MATCH Age:$SNPAGE AgeStat: $AGESTAT"
+
