@@ -9,7 +9,7 @@ DESTDS="backup/bsp/shr"
 SOURCEDS="192.168.XXX.XXX:pool1/shr"
 WARNAGE="24"
 CRITAGE="48"
-TAG="backup"
+TAG=""
 
 ## Rest
 [ "$TAG" != "" ] && TAG="-t $TAG"
