@@ -28,5 +28,4 @@ AGESTAT="OK"
 [ $SNPAGE -gt $CRITAGE ] && STAT="2" && AGESTAT="CRIT"
 [ "$MATCH" != "OK" ]     && STAT="2"
 
-echo "$STAT \"Match last snapshot from $DDATSET with $SDATSET\" - Match:$MATCH Age:$SNPAGE AgeStat: $AGESTAT"
-
+echo "$STAT \"Match last Snapshot from $DESTDS with $SOURCEDS\" - Match: $MATCH, Age: $SNPAGE, AgeStat: $AGESTAT, DesDS: $DDATSET, SrcDS: $SDATSET"
