@@ -48,7 +48,8 @@ zfsrasp:~#
 Mit -q (Quietmode) erhält man eine gekürzte eher Maschinen lesbare Darstellung.
 Wird als Dataset "alldatasets" angegeben wird der Vergleich für alle Datasets durchgeführt.
 ```
-zfsrasp:~# ./matchsnap.sh -q 127.0.0.1:alldatasets 192.168.178.31:pool1/smbshr+ Match: NO D:FOUND S:NOSNP DA:0 DDS:backup SDS:pool1/smbshr T:
+zfsrasp:~# ./matchsnap.sh -q 127.0.0.1:alldatasets 192.168.178.31:pool1/smbshr
++ Match:NO D:FOUND S:NOSNP DA:0 DDS:backup SDS:pool1/smbshr T:
 + Match:NO D:FOUND S:NOSNP DA:0 DDS:backup/smbshr SDS:pool1/smbshr T:
 + Match:NO D:NOSNP S:NOSNP DA:-1 DDS:backup/sr SDS:pool1/smbshr T:
 + Match:OK D:FOUND S:FOUND DA:6 DDS:backup/sr/smbshr SDS:pool1/smbshr T:
