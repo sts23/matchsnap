@@ -24,15 +24,26 @@ ZFS() {
   then
     zfs "$@"
   else
-    #echo "Connecting to $HOST" 1>&2
     ssh -C -p "$PORT" "$HOST" zfs "$@" 
+    if [ "$?" != "0" ]
+    then
+      echo "Error Connecting to $HOST" 1>&2
+      kill -TERM $$
+    fi
   fi
 }
 
 PR_OUT() {
+  FORMAT="$2"
   if [ "$QUIET" != "true" ]
   then
-    echo "$@" >&2
+    if [ "$FORMAT" = "I" ]
+    then 
+      PRINT=`echo "$1"|sed 's/^/  /'`
+    else
+      PRINT="$1"
+    fi
+    echo "$PRINT" |tr '\t' ' ' >&2
   fi
 }
 
@@ -42,7 +53,7 @@ GET_LASTDSNP() {
   DS="$3"
   T="$4"
 
-  PR_OUT "+ Get last snapshot from target (Name,Guid,Creation): $DESTDS $DHOST"
+  PR_OUT "+ Get last snapshot (name,guid,creation) from target $PRDHOST:$DESTDS:"
 
   LASTDESTSNP=`ZFS "$H" "$P" list -t snapshot -H -o name,guid,creation -p \
 	       -s creation $DS | grep "@.*$T" | tail -1`
@@ -55,7 +66,7 @@ GET_LASTDSNP() {
 
   if [ "$LASTDESTSNP" = "" ] 
   then 
-    LASTDESTSNP="No snapshot found"
+    LASTDESTSNP="-- No dest. snapshot found --"
     STATDSTSNAP="NOSNP" 
     STATDSTDS="$DS" 
     DSTAGE="-1"
@@ -64,25 +75,12 @@ GET_LASTDSNP() {
     STATDSTDS="$DS" 
     DSTAGE=$(((NOW - DESTSNP_CREATE) / 60 /60))
   fi
-  PR_OUT "  $LASTDESTSNP" 
+  PR_OUT "$LASTDESTSNP" "I"
   PR_OUT "+ Age of Snapshot:  ${DSTAGE}h" 
 }
 
 GET_MATCHSNP() {
-  H="$1"
-  P="$2"
-  DS="$3"
-  T="$4"
-  PR_OUT "+ Get matching snapshots from source (Name,Guid,Creation): $SRCDS $SHOST"
-
-  if [ "$SRCDS" = "" ]
-  then
-    SRCSNAPLIST=`ZFS "$H" "$P" list -t snapshot -H -o name,guid,creation -p \
-                 -s creation | grep "$T"`
-  else
-    SRCSNAPLIST=`ZFS "$H" "$P" list -t snapshot -H -o name,guid,creation -p \
-                 -s creation $DS | grep "$T"`
-  fi
+  PR_OUT "+ Get matching snapshots (name,guid,creation) from source $PRSHOST:$PRSRCDS:"
 
   # bash only:
   #while IFS= read -r LINE
@@ -99,49 +97,39 @@ GET_MATCHSNP() {
   #done <<< "$SRCSNAPLIST" 
 
 
-  #MATCHLINES=`echo "$SRCSNAPLIST" | awk -v TGUID=$DESTSNP_GUID -v HOSTA=$DHOST '{
-  #  if( $2 == TGUID) {
-  #    print $0;
-  #  }
-  #}'`
+  MATCHLINES=`echo "$SRCSNAPLIST"|awk -v TGUID=$DESTSNP_GUID -v HOSTA=$DHOST '{
+    if( $2 == TGUID) {
+      print $0;
+    }
+  }'`
 
-  SNAPCOUNT=`echo "$SRCSNAPLIST"|wc -l`
-  LINECOUNT=0
-  HITCOUNT=0
-  echo "$SRCSNAPLIST" | while IFS= read -r LINE
-  do
-    LINECOUNT=$((LINECOUNT + 1))
-    SRCSNP_NAME=`echo $LINE|awk '{print $1}'`
-    SRCSNP_DS=`echo $LINE|sed 's/@.*$//'`
-    SRCSNP_GUID=`echo $LINE|awk '{print $2}'`
-    SRCSNP_CREATE=`echo $LINE|awk '{$1=""; $2=""; print}'`
-  
-    if [ "$SRCSNP_GUID" = "$DESTSNP_GUID" ]
-    then
-      if [ "$DHOST" = "$SHOST" ]
+  if [ "$MATCHLINES" != "" ]
+  then
+    SNAPCOUNT=`echo "$MATCHLINES"|wc -l`
+
+    echo "$MATCHLINES" | while IFS= read -r LINE
+    do
+      SRCSNP_NAME=`echo $LINE|awk '{print $1}'`
+      SRCSNP_DS=`echo $LINE|sed 's/@.*$//'`
+      SRCSNP_GUID=`echo $LINE|awk '{print $2}'`
+      SRCSNP_CREATE=`echo $LINE|awk '{$1=""; $2=""; print}'`
+
+      if [ "$DHOST" = "$SHOST" -a "$LINE" = "$LASTDESTSNP" ]
       then
-        if [ ! "$LINE" = "$LASTDESTSNP" ]
+	if [ $SNAPCOUNT -gt 1 ]
         then
-	  HITCOUNT=$((HITCOUNT + 1))
-          PR_OUT "  $LINE"
-          STATSRCSNAP="FOUND"
-          STATSRCDS="$SRCSNP_DS"
+          continue
+        else
+          STATSRCSNAP="-----"
+          STATSRCDS=""
+          PR_OUT "-- No matching snapshot --" "I"
         fi
       else
-	HITCOUNT=$((HITCOUNT + 1))
-        PR_OUT "  $LINE"
-        STATSRCSNAP="FOUND"
-        STATSRCDS="$SRCSNP_DS"
+      PR_OUT "$LINE" "I"
+      STATSRCSNAP="FOUND"
+      STATSRCDS="$SRCSNP_DS"
       fi
-    fi 
-    if [ "$LINECOUNT" = "$SNAPCOUNT" ]
-    then
-      if [ "$HITCOUNT" = "0" ]
-      then
-	 PR_OUT "  No Snapshot found"
-         STATSRCSNAP="NOSNP"
-         STATSRCDS="$DS"
-      fi 
+
       if [ "$QUIET" = "true" ]
       then
         if [ "$STATDSTSNAP" = "FOUND" -a "$STATSRCSNAP" = "FOUND" ]
@@ -155,8 +143,25 @@ GET_MATCHSNP() {
         printf "+ Match=$MATCH D=$STATDSTSNAP S=$STATSRCSNAP DA=$DSTAGE "
         printf "DDS=$STATDSTDS SDS=$STATSRCDS T=$TAG\n"
       fi
+    done 
+  else
+    PR_OUT "-- No matching snapshot found --" "I"
+    STATSRCSNAP="-----"
+    STATSRCDS="$DS"
+    if [ "$QUIET" = "true" ]
+    then
+      if [ "$STATDSTSNAP" = "FOUND" -a "$STATSRCSNAP" = "FOUND" ]
+      then
+        MATCH="OK"
+      else
+        MATCH="NO"
+      fi
+        [ "$DHOST" != "" -a "$STATDSTDS" != "" ] && STATDSTDS="$DHOST:$STATDSTDS"
+        [ "$SHOST" != "" -a "$STATSRCDS" != "" ] && STATSRCDS="$SHOST:$STATSRCDS"
+        printf "+ Match=$MATCH D=$STATDSTSNAP S=$STATSRCSNAP DA=$DSTAGE "
+        printf "DDS=$STATDSTDS SDS=$STATSRCDS T=$TAG\n"
     fi
-  done 
+  fi
 }
 
 #### End Functions ####
@@ -221,11 +226,27 @@ then
   esac
 fi
 
+[ "$SHOST" = "" ] && PRSHOST="local" || PRSHOST="$SHOST"
+[ "$DHOST" = "" ] && PRDHOST="local" || PRDHOST="$DHOST"
+[ "$SRCDS" = "" ] && PRSRCDS="all" || PRSRCDS="$SRCDS"
+
+#[ "$SRCDS" = "alldataset" ] && SRCDS="" 
+
+if [ "$SRCDS" = "" -o "$SRCDS" = "alldatasets" ]
+then
+  SRCSNAPLIST=`ZFS "$SHOST" "$SPORT" list -t snapshot -H -o name,guid,creation -p \
+               -s creation | grep "$T"`
+else
+  SRCSNAPLIST=`ZFS "$SHOST" "$SPORT" list -t snapshot -H -o name,guid,creation -p \
+               -s creation "$SRCDS" | grep "$T"`
+fi
+
 if [ "$DESTDS" = "alldatasets" ]
 then
-  PR_OUT "+ Get all Datasets $DHOST"
+  PR_OUT "+ Get all Datasets ($PRDHOST)"
   ZFSSETLIST=`ZFS "$DHOST" "$DPORT" list -H -o name`
-  PR_OUT "$ZFSSETLIST"
+  PR_OUT "$ZFSSETLIST" "I"
+  PR_OUT ""
   for DATASET in $ZFSSETLIST
   do
     DESTDS="$DATASET"
