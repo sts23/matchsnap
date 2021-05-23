@@ -1,0 +1,49 @@
+#! /bin/bash
+#
+# CheckMK Wrapper Script for matchsnap.sh
+# Put this Script in /usr/lib/check_mk_agent/local to run it as local check.
+
+## Config Variables
+MATCHSNAP="/usr/local/bin/matchsnap.sh"
+
+# Examplpes for Dest. and Soucre Dataset Variable
+# "pool2/smbshr"
+# "192.168.XXX.XXX:pool1/shr"
+
+DESTDS[0]="backup/s1/smbshr"
+SOURCEDS[0]="192.168.XXX.XX:pool1/smbshr"
+
+DESTDS[1]="backup/s2/smbshr"
+SOURCEDS[1]="127.0.0.1:pool1/smbshr"
+
+DESTDS[2]="backup"
+SOURCEDS[2]="127.0.0.1:pool1/smbshr"
+
+WARNAGE="24"
+CRITAGE="48"
+TAG=""
+MATCH="OK"
+
+## Rest
+ELMNTCNT="${#DESTDS[@]}"
+
+for (( I=0; I<ELMNTCNT; I++ ))
+do
+  [ "$TAG" != "" ] && TAG="-t $TAG"
+  CMDOUT=`$MATCHSNAP -q $TAG "${DESTDS[$I]}" "${SOURCEDS[$I]}"|head -1`
+  MATCH=`echo "$CMDOUT" | cut -d' ' -f2 | cut -d'=' -f2`
+  SNPAGE=`echo "$CMDOUT" | cut -d' ' -f5 | cut -d'=' -f2`
+  DDATSET=`echo "$CMDOUT" | cut -d' ' -f6 | cut -d'=' -f2`
+  SDATSET=`echo "$CMDOUT" | cut -d' ' -f7 | cut -d'=' -f2`
+
+  # Satus: 0=OK 1=WARN 2=CRIT 3=UNKN
+
+  STAT="0"
+  AGESTAT="OK"
+  [ $SNPAGE -gt $WARNAGE ] && STAT="1" && AGESTAT="WARN"
+  [ $SNPAGE -gt $CRITAGE ] && STAT="2" && AGESTAT="CRIT"
+  [ "$MATCH" != "OK" ]     && STAT="2"
+
+ echo "$STAT \"Match last snapshot from ${DESTDS[$I]} with ${SOURCEDS[$I]}\" - Match: $MATCH, Age: $SNPAGE, AgeStat: $AGESTAT, DesDS: $DDATSET, SrcDS: $SDATSET"
+done
+
