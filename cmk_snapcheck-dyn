@@ -1,0 +1,46 @@
+#! /bin/sh
+#
+# CheckMK Wrapper Script for matchsnap.sh
+# Put this Script in /usr/lib/check_mk_agent/local to run it as local check.
+
+## Config Variables
+MATCHSNAP="/usr/local/bin/matchsnap.sh"
+
+# Examplpes for Dest. and Soucre Dataset Variable
+#
+# DESTDS="alldatasets"
+# SOURCEDS="pool2/smbshr"
+# SOURCEDS="192.168.XXX.XXX:pool1/shr"
+# SOURCEDS="192.168.178.31:alldatasets"
+
+DESTDS="alldatasets"
+SOURCEDS="192.168.XXX.XXX:alldatasets"
+
+WARNAGE="24"
+CRITAGE="48"
+TAG=""
+MATCH="OK"
+
+## Rest of Script
+[ "$TAG" != "" ] && TAG="-t $TAG"
+CMDOUT=`$MATCHSNAP -q $TAG "$DESTDS" "$SOURCEDS"|grep "Match=$MATCH"`
+
+echo "$CMDOUT"|while IFS= read -r LINE
+do
+  MATCH=`echo "$LINE" | cut -d' ' -f2 | cut -d'=' -f2`
+  SNPAGE=`echo "$LINE" | cut -d' ' -f5 | cut -d'=' -f2`
+  DDATSET=`echo "$LINE" | cut -d' ' -f6 | cut -d'=' -f2`
+  SDATSET=`echo "$LINE" | cut -d' ' -f7 | cut -d'=' -f2`
+
+  [ "$SDATSET" = "" ] && SDATSET="NoMatchFnd"
+
+  # Satus: 0=OK 1=WARN 2=CRIT 3=UNKN
+
+  STAT="0"
+  AGESTAT="OK"
+  [ $SNPAGE -gt $WARNAGE ] && STAT="1" && AGESTAT="WARN"
+  [ $SNPAGE -gt $CRITAGE ] && STAT="2" && AGESTAT="CRIT"
+  [ "$MATCH" != "OK" ]     && STAT="2"
+
+  echo "$STAT \"Match last snapshot from $DDATSET with $SDATSET\" - Match: $MATCH, Age: $SNPAGE, AgeStat: $AGESTAT, DesDS: $DDATSET, SrcDS: $SDATSET"
+done
